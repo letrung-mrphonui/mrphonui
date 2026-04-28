@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>a.SENSE Dashboard – Báo Cáo T4/2026</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --crimson:#8B0000; --crimson-mid:#A50000; --crimson-bright:#C0152A;
+    --gold:#C9A84C; --gold-light:#E8C76A;
+    --bg-deep:#0D0505; --bg-card:#160B0B; --bg-panel:#1E0F0F;
+    --border:rgba(201,168,76,.18); --border-glow:rgba(201,168,76,.38);
+    --text-primary:#F5EDE0; --text-muted:#9C8070; --text-dim:#5C4040;
+    --shadow-gold:0 0 28px rgba(201,168,76,.14);
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Jost',sans-serif;background:var(--bg-deep);color:var(--text-primary);min-height:100vh;overflow-x:hidden}
+  body::before{content:'';position:fixed;inset:0;z-index:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;opacity:.5}
+
+  header{position:relative;z-index:10;background:linear-gradient(135deg,#1a0707 0%,#2a0a0a 50%,#1a0707 100%);border-bottom:1px solid var(--border-glow);padding:28px 48px 22px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 4px 40px rgba(0,0,0,.7)}
+  .header-logo{font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:700;letter-spacing:.12em;color:var(--gold);text-shadow:0 0 30px rgba(201,168,76,.4);display:flex;align-items:center;gap:14px}
+  .brand-dot{display:inline-block;width:8px;height:8px;background:var(--crimson-bright);border-radius:50%;box-shadow:0 0 12px var(--crimson-bright)}
+  .header-meta{text-align:right;font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted)}
+  .header-meta strong{color:var(--gold-light);font-size:.85rem;font-weight:600}
+
+  .tab-nav{position:relative;z-index:10;display:flex;background:#120808;border-bottom:1px solid var(--border);padding:0 48px}
+  .tab-btn{font-family:'Jost',sans-serif;font-size:.78rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--text-muted);background:none;border:none;padding:18px 30px;cursor:pointer;position:relative;transition:color .3s}
+  .tab-btn::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--gold);transform:scaleX(0);transition:transform .3s}
+  .tab-btn:hover{color:var(--text-primary)}
+  .tab-btn.active{color:var(--gold-light)}
+  .tab-btn.active::after{transform:scaleX(1)}
+
+  main{position:relative;z-index:5;padding:36px 48px 60px}
+  .tab-panel{display:none}
+  .tab-panel.active{display:block;animation:fadeIn .4s ease}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+
+  .kpi-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:14px;margin-bottom:32px}
+  .kpi-card{background:var(--bg-card);border:1px solid var(--border);border-radius:4px;padding:20px 18px 16px;position:relative;overflow:hidden;transition:border-color .3s,box-shadow .3s}
+  .kpi-card:hover{border-color:var(--border-glow);box-shadow:var(--shadow-gold)}
+  .kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--crimson),var(--gold))}
+  .kpi-label{font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;color:var(--text-muted);margin-bottom:7px}
+  .kpi-value{font-family:'Cormorant Garamond',serif;font-size:1.8rem;font-weight:700;color:var(--gold-light);line-height:1}
+  .kpi-value .unit{font-size:.9rem;color:var(--text-muted)}
+  .kpi-sub{font-size:.68rem;color:var(--text-dim);margin-top:5px;line-height:1.5}
+  .kpi-badge{display:inline-block;padding:2px 7px;border-radius:2px;font-size:.65rem;font-weight:600;background:rgba(139,0,0,.35);color:#ff8080;border:1px solid rgba(139,0,0,.5)}
+  .kpi-badge.pos{background:rgba(0,100,60,.3);color:#50d090;border-color:rgba(0,140,80,.4)}
+
+  .section-title{font-family:'Cormorant Garamond',serif;font-size:1.15rem;font-weight:600;letter-spacing:.06em;color:var(--gold);margin-bottom:16px;display:flex;align-items:center;gap:12px}
+  .section-title::before{content:'';display:block;width:26px;height:1px;background:var(--crimson-bright)}
+
+  .chart-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-bottom:26px}
+  .chart-grid-3{display:grid;grid-template-columns:2fr 1fr;gap:22px;margin-bottom:26px}
+  .chart-card{background:var(--bg-card);border:1px solid var(--border);border-radius:4px;padding:24px 24px 18px;position:relative}
+  .chart-card:hover{border-color:rgba(201,168,76,.25)}
+  .chart-title{font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--text-muted);margin-bottom:16px}
+  .chart-wrap{position:relative}
+
+  .activity-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:11px;margin-bottom:26px}
+  .act-card{background:var(--bg-panel);border:1px solid var(--border);border-radius:4px;padding:14px 14px 11px;text-align:center;transition:border-color .2s}
+  .act-card:hover{border-color:var(--border-glow)}
+  .act-label{font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:5px}
+  .act-value{font-family:'Cormorant Garamond',serif;font-size:1.55rem;font-weight:700;color:var(--gold-light)}
+  .act-sub{font-size:.62rem;color:var(--text-dim);margin-top:3px}
+
+  .data-table-wrap{overflow-x:auto}
+  .data-table{width:100%;border-collapse:collapse;font-size:.73rem}
+  .data-table thead th{padding:10px 12px;text-align:left;font-weight:600;letter-spacing:.09em;text-transform:uppercase;font-size:.61rem;color:var(--text-muted);background:#1a0a0a;border-bottom:1px solid var(--border);white-space:nowrap}
+  .data-table thead th.num{text-align:right}
+  .data-table tbody tr{border-bottom:1px solid rgba(201,168,76,.06);transition:background .2s}
+  .data-table tbody tr:hover{background:rgba(201,168,76,.04)}
+  .data-table tbody td{padding:9px 12px;color:var(--text-primary);vertical-align:middle;white-space:nowrap}
+  .data-table tbody td.num{text-align:right;font-variant-numeric:tabular-nums}
+  .data-table tbody td.name{font-weight:500;color:var(--gold-light);font-size:.71rem;white-space:normal;min-width:160px}
+
+  .rank-badge{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:2px;font-size:.62rem;font-weight:700;background:rgba(139,0,0,.25);color:#c05050;border:1px solid rgba(139,0,0,.3)}
+  .rank-badge.gold{background:rgba(201,168,76,.2);color:var(--gold);border-color:var(--border-glow)}
+  .rank-badge.silver{background:rgba(180,180,200,.1);color:#b0b8c8;border-color:rgba(150,160,180,.2)}
+  .rank-badge.bronze{background:rgba(180,100,40,.15);color:#c87840;border-color:rgba(160,80,30,.25)}
+
+  .prog-bar-wrap{width:80px;height:4px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden;display:inline-block}
+  .prog-bar{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--crimson),var(--gold))}
+
+  .divider{height:1px;background:var(--border);margin:26px 0}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px}
+  .legend-item{display:flex;align-items:center;gap:6px;font-size:.65rem;color:var(--text-muted)}
+  .legend-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+
+  .filter-bar{display:flex;gap:12px;margin-bottom:16px;align-items:center}
+  .filter-input{background:var(--bg-panel);border:1px solid var(--border);color:var(--text-primary);border-radius:3px;padding:8px 13px;font-size:.73rem;font-family:'Jost',sans-serif;outline:none;transition:border-color .2s;width:270px}
+  .filter-input:focus{border-color:var(--border-glow)}
+  .filter-input::placeholder{color:var(--text-dim)}
+
+  ::-webkit-scrollbar{width:6px;height:6px}
+  ::-webkit-scrollbar-track{background:var(--bg-deep)}
+  ::-webkit-scrollbar-thumb{background:var(--crimson);border-radius:3px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-logo"><span class="brand-dot"></span>a.SENSE Analytics</div>
+  <div class="header-meta">
+    <div>Báo Cáo Doanh Thu</div>
+    <strong>Tháng 4 / 2026</strong>
+    <div style="margin-top:4px;font-size:.68rem">Cập nhật: 27/04/2026</div>
+  </div>
+</header>
+
+<nav class="tab-nav">
+  <button class="tab-btn active" onclick="switchTab(0)">Tổng Quan Toàn Quốc</button>
+  <button class="tab-btn"        onclick="switchTab(1)">Phân Tích Trung Tâm</button>
+  <button class="tab-btn"        onclick="switchTab(2)">Hiệu Suất Nhân Viên</button>
+</nav>
+
+<main>
+
+<!-- ══════════ TAB 1 ══════════ -->
+<section class="tab-panel active" id="tab0">
+
+  <div class="kpi-strip">
+    <div class="kpi-card">
+      <div class="kpi-label">Tổng Doanh Thu</div>
+      <div class="kpi-value">3.099 <span class="unit">tỷ</span></div>
+      <div class="kpi-sub">KPI: 5.505 tỷ &nbsp;<span class="kpi-badge">56,3%</span></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Tổng Lượt Đón KH</div>
+      <div class="kpi-value">12.969</div>
+      <div class="kpi-sub">Trung bình <b style="color:var(--text-primary)">499</b> / ngày</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">New Sale</div>
+      <div class="kpi-value">488 <span class="unit">gói</span></div>
+      <div class="kpi-sub">DS: <b style="color:var(--text-primary)">1.021 tr</b> &nbsp;·&nbsp; <span class="kpi-badge">14,3%</span></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Upsale</div>
+      <div class="kpi-value">580 <span class="unit">gói</span></div>
+      <div class="kpi-sub">DS: <b style="color:var(--text-primary)">1.167 tr</b> &nbsp;·&nbsp; <span class="kpi-badge">6,1%</span></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Mua Lẻ Dịch Vụ</div>
+      <div class="kpi-value">4.343 <span class="unit">lượt</span></div>
+      <div class="kpi-sub">DS Mua Lẻ: <b style="color:var(--text-primary)">809 tr</b></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">DS Bán Lẻ Sản Phẩm (Retail)</div>
+      <div class="kpi-value">100,6 <span class="unit">tr</span></div>
+      <div class="kpi-sub">Turn: <b style="color:var(--text-primary)">14.175</b> · KHHH: <b style="color:var(--text-primary)">10.888</b> · Mới: <b style="color:var(--text-primary)">3.256</b></div>
+    </div>
+  </div>
+
+  <!-- Line: Số KH đến mỗi ngày (Tổng lượt đón KH) + Pie -->
+  <div class="chart-grid-3">
+    <div class="chart-card">
+      <div class="chart-title">Số Khách Hàng Đến Mỗi Ngày – Tổng Lượt Đón KH</div>
+      <div class="chart-wrap" style="height:280px"><canvas id="chartDailyKH"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Cơ Cấu Doanh Thu</div>
+      <div class="chart-wrap" style="height:210px"><canvas id="chartRevPie"></canvas></div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#C0152A"></div>New Sale</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#C9A84C"></div>Upsale</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#7a3030"></div>Mua Lẻ DV</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#3d1a1a"></div>Retail SP</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Daily Revenue + Hour full overview -->
+  <div class="chart-grid-2">
+    <div class="chart-card">
+      <div class="chart-title">Doanh Thu Mỗi Ngày (triệu đồng)</div>
+      <div class="chart-wrap" style="height:260px"><canvas id="chartDailyRevenue"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Số Khách Theo Khung Giờ – Cao Điểm & Thấp Điểm (Tất Cả Ca)</div>
+      <div class="chart-wrap" style="height:260px"><canvas id="chartHourBar"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Services -->
+  <div class="section-title">Gói Dịch Vụ Được Sử Dụng</div>
+  <div class="chart-card" style="margin-bottom:26px">
+    <div class="chart-title">Số Lượt Sử Dụng Theo Gói Dịch Vụ (Top 10)</div>
+    <div class="chart-wrap" style="height:260px"><canvas id="chartService"></canvas></div>
+  </div>
+
+  <!-- Hoạt động triển khai -->
+  <div class="section-title">Hoạt Động Triển Khai Của Trung Tâm</div>
+  <div class="activity-grid">
+    <div class="act-card">
+      <div class="act-label">KH New – Tải App</div>
+      <div class="act-value">14</div>
+      <div class="act-sub">lượt đăng ký mới</div>
+    </div>
+    <div class="act-card">
+      <div class="act-label">KHHH – Tải App</div>
+      <div class="act-value">295</div>
+      <div class="act-sub">hội hàng tải app</div>
+    </div>
+    <div class="act-card">
+      <div class="act-label">KH Nhận Quà</div>
+      <div class="act-value">6</div>
+      <div class="act-sub">lượt nhận quà</div>
+    </div>
+    <div class="act-card">
+      <div class="act-label">Dùng Voucher</div>
+      <div class="act-value">43</div>
+      <div class="act-sub">lượt sử dụng</div>
+    </div>
+    <div class="act-card">
+      <div class="act-label">Mời GG Map</div>
+      <div class="act-value">71</div>
+      <div class="act-sub">lượt mời đánh giá</div>
+    </div>
+    <div class="act-card">
+      <div class="act-label">Phát Voucher</div>
+      <div class="act-value">1.991</div>
+      <div class="act-sub">voucher đã phát</div>
+    </div>
+    <div class="act-card">
+      <div class="act-label">Contact Thu Được</div>
+      <div class="act-value">16</div>
+      <div class="act-sub">contact xin được</div>
+    </div>
+    <div class="act-card">
+      <div class="act-label">Khiếu Nại KH</div>
+      <div class="act-value" style="color:#50d090">0</div>
+      <div class="act-sub" style="color:#50d090">không có khiếu nại</div>
+    </div>
+  </div>
+  <div class="chart-card" style="margin-bottom:26px">
+    <div class="chart-title">Xu Hướng Hoạt Động Triển Khai Theo Ngày</div>
+    <div class="chart-wrap" style="height:230px"><canvas id="chartActivity"></canvas></div>
+  </div>
+</section>
+
+
+<!-- ══════════ TAB 2 ══════════ -->
+<section class="tab-panel" id="tab1">
+
+  <div class="kpi-strip">
+    <div class="kpi-card">
+      <div class="kpi-label">Số Trung Tâm Hoạt Động</div>
+      <div class="kpi-value">46</div>
+      <div class="kpi-sub">Trên toàn quốc</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Doanh Thu Cao Nhất</div>
+      <div class="kpi-value" style="font-size:1.35rem">258,7 <span class="unit">tr</span></div>
+      <div class="kpi-sub">Jasmine 1 Hà Đô Centrosa</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Trung Bình / Trung Tâm</div>
+      <div class="kpi-value" style="font-size:1.35rem">69,6 <span class="unit">tr</span></div>
+      <div class="kpi-sub">Tháng 4/2026</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Rating New Sale TB</div>
+      <div class="kpi-value">14,34%</div>
+      <div class="kpi-sub">Giá trị TB gói: <b style="color:var(--text-primary)">2.093.228đ</b></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Rating Upsale TB</div>
+      <div class="kpi-value">6,06%</div>
+      <div class="kpi-sub">Giá trị TB gói: <b style="color:var(--text-primary)">2.012.713đ</b></div>
+    </div>
+  </div>
+
+  <div class="section-title">Top 10 Trung Tâm Doanh Thu Cao Nhất</div>
+  <div class="chart-card" style="margin-bottom:26px">
+    <div class="chart-title">Doanh Thu (triệu đồng)</div>
+    <div class="chart-wrap" style="height:290px"><canvas id="chartTopCenter"></canvas></div>
+  </div>
+
+  <div class="section-title">Rating New Sale & Upsale Theo Trung Tâm (Top 15, Cao → Thấp)</div>
+  <div class="chart-grid-2">
+    <div class="chart-card">
+      <div class="chart-title">Rating New Sale (%) – Cao → Thấp</div>
+      <div class="chart-wrap" style="height:340px"><canvas id="chartNewSaleRating"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Rating Upsale (%) – Cao → Thấp</div>
+      <div class="chart-wrap" style="height:340px"><canvas id="chartUpsaleRating"></canvas></div>
+    </div>
+  </div>
+
+  <div class="section-title">Giá Trị Trung Bình Gói Bán Theo Trung Tâm (Top 15, Cao → Thấp)</div>
+  <div class="chart-grid-2">
+    <div class="chart-card">
+      <div class="chart-title">Giá Trị TB Gói New Sale (nghìn đồng)</div>
+      <div class="chart-wrap" style="height:340px"><canvas id="chartAvgNewVal"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Giá Trị TB Gói Upsale (nghìn đồng)</div>
+      <div class="chart-wrap" style="height:340px"><canvas id="chartAvgUpVal"></canvas></div>
+    </div>
+  </div>
+
+  <div class="chart-grid-2">
+    <div class="chart-card">
+      <div class="chart-title">Tỷ Trọng Doanh Thu – Top 5 Trung Tâm</div>
+      <div class="chart-wrap" style="height:230px"><canvas id="chartCenterPie"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Turn KHHH vs KH Mới – Top 10 (SL KHHH + SL KH Mới thực tế)</div>
+      <div class="chart-wrap" style="height:230px"><canvas id="chartCenterTurnBar"></canvas></div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+  <div class="section-title">Bảng Chi Tiết Tất Cả Trung Tâm</div>
+  <div class="filter-bar">
+    <input class="filter-input" type="text" placeholder="🔍  Tìm trung tâm..." id="searchCenter" oninput="filterCenter()">
+  </div>
+  <div class="data-table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Trung Tâm</th>
+          <th class="num">DS (tr.đ)</th>
+          <th class="num">Tổng KH<br><small style="font-weight:400;opacity:.6">(KHHH+Mới)</small></th>
+          <th class="num">SL KHHH</th>
+          <th class="num">SL KH Mới</th>
+          <th class="num">NS</th>
+          <th class="num">Rating NS%</th>
+          <th class="num">UP</th>
+          <th class="num">Rating UP%</th>
+          <th class="num">TB Gói NS</th>
+          <th class="num">TB Gói UP</th>
+          <th class="num">Turn</th>
+          <th class="num">DS Bar</th>
+        </tr>
+      </thead>
+      <tbody id="centerTbody"></tbody>
+    </table>
+  </div>
+</section>
+
+
+<!-- ══════════ TAB 3 ══════════ -->
+<section class="tab-panel" id="tab2">
+
+  <div class="kpi-strip">
+    <div class="kpi-card">
+      <div class="kpi-label">SL KTV Đi Làm (TB/ngày)</div>
+      <div class="kpi-value">115</div>
+      <div class="kpi-sub">Max: <b style="color:var(--text-primary)">149</b> (11/4) · Min: <b style="color:var(--text-primary)">113</b></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">DS Bán Gói (New + Up)</div>
+      <div class="kpi-value" style="font-size:1.35rem">2.175,8 <span class="unit">tr</span></div>
+      <div class="kpi-sub">SL Bán Gói: <b style="color:var(--text-primary)">1.059</b> giao dịch</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">DS Bán Lẻ Dịch Vụ</div>
+      <div class="kpi-value" style="font-size:1.35rem">806,7 <span class="unit">tr</span></div>
+      <div class="kpi-sub">SL Bán Lẻ DV: <b style="color:var(--text-primary)">4.381</b> lượt</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">DS Retail Sản Phẩm</div>
+      <div class="kpi-value" style="font-size:1.35rem">100,6 <span class="unit">tr</span></div>
+      <div class="kpi-sub">Bán lẻ sản phẩm tại quầy</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Rating New Sale</div>
+      <div class="kpi-value">14,34%</div>
+      <div class="kpi-sub">TB Gói New: <b style="color:var(--text-primary)">2.093.228đ</b></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Rating Upsale</div>
+      <div class="kpi-value">6,06%</div>
+      <div class="kpi-sub">TB Gói Up: <b style="color:var(--text-primary)">2.012.713đ</b></div>
+    </div>
+  </div>
+
+  <!-- Channel DS overview -->
+  <div class="section-title">Cơ Cấu Doanh Thu Theo Kênh Bán</div>
+  <div class="chart-grid-2" style="margin-bottom:26px">
+    <div class="chart-card">
+      <div class="chart-title">So Sánh DS Bán Gói / Bán Lẻ DV / Retail SP (triệu đồng)</div>
+      <div class="chart-wrap" style="height:230px"><canvas id="chartRevChannel"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Tỷ Trọng DS Từng Kênh</div>
+      <div class="chart-wrap" style="height:190px"><canvas id="chartRevChannelPie"></canvas></div>
+      <div class="legend" style="margin-top:8px">
+        <div class="legend-item"><div class="legend-dot" style="background:#C0152A"></div>New Sale</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#C9A84C"></div>Upsale</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#7a3030"></div>Bán Lẻ DV</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#3d1a1a"></div>Retail SP</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- KTV + Sale daily -->
+  <div class="chart-grid-2">
+    <div class="chart-card">
+      <div class="chart-title">Số KTV Đi Làm Mỗi Ngày</div>
+      <div class="chart-wrap" style="height:230px"><canvas id="chartKTVLine"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Số Gói New Sale & Upsale Bán Được Mỗi Ngày</div>
+      <div class="chart-wrap" style="height:230px"><canvas id="chartSaleDaily"></canvas></div>
+    </div>
+  </div>
+
+  <!-- DS all channels daily -->
+  <div class="section-title">Doanh Thu Theo Kênh – Xu Hướng Hàng Ngày</div>
+  <div class="chart-card" style="margin-bottom:26px">
+    <div class="chart-title">DS New Sale / Upsale / Bán Lẻ DV / Retail SP Mỗi Ngày (triệu đồng)</div>
+    <div class="chart-wrap" style="height:260px"><canvas id="chartDSChannelDaily"></canvas></div>
+  </div>
+
+  <!-- Avg value + weekly -->
+  <div class="chart-grid-2">
+    <div class="chart-card">
+      <div class="chart-title">Giá Trị Trung Bình Gói Bán (New vs Upsale) Theo Ngày</div>
+      <div class="chart-wrap" style="height:230px"><canvas id="chartAvgValue"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">DS New Sale + Upsale Theo Tuần</div>
+      <div class="chart-wrap" style="height:230px"><canvas id="chartWeekly"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Weekly Table -->
+  <div class="section-title">Bảng Hiệu Suất Chi Tiết Theo Tuần</div>
+  <div class="data-table-wrap" style="margin-bottom:32px">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Tuần</th>
+          <th>Ngày</th>
+          <th class="num">DS Bán Gói<br>New+Up (tr)</th>
+          <th class="num">SL Bán Gói</th>
+          <th class="num">DS New Sale</th>
+          <th class="num">SL New</th>
+          <th class="num">DS Upsale</th>
+          <th class="num">SL Up</th>
+          <th class="num">DS Bán Lẻ DV (tr)</th>
+          <th class="num">DS Retail SP (tr)</th>
+          <th class="num">Turn KH</th>
+        </tr>
+      </thead>
+      <tbody id="weeklyTbody"></tbody>
+    </table>
+  </div>
+</section>
+</main>
+
+<script>
+/* ══════ DATA ══════ */
+const days=['1/4','2/4','3/4','4/4','5/4','6/4','7/4','8/4','9/4','10/4',
+            '11/4','12/4','13/4','14/4','15/4','16/4','17/4','18/4','19/4',
+            '20/4','21/4','22/4','23/4','24/4','25/4','26/4'];
+
+// Tab1: Tổng lượt đón KH mỗi ngày (real data from sheet)
+const dailyKH=[459,414,423,521,646,414,421,460,435,478,566,676,413,447,473,472,486,596,733,449,458,479,494,512,583,459];
+
+const dailyRevenue=[102.93,70.47,95.39,108.48,195.16,77.76,84.78,68.60,106.27,93.39,
+                    118.03,149.46,102.80,68.92,84.41,74.24,155.15,221.49,209.77,133.87,
+                    116.06,114.88,95.32,99.68,205.20,146.18];
+
+// All 28 time slots
+const sessionLabels=[
+  'Ca1 08:30','Ca2 09:00','Ca3 09:30','Ca4 10:00','Ca5 10:30','Ca6 11:00',
+  'Ca7 11:30','Ca8 12:00','Ca9 12:30','Ca10 13:00','Ca11 13:30','Ca12 14:00',
+  'Ca13 14:30','Ca14 15:00','Ca15 15:30','Ca16 16:00','Ca17 16:30','Ca18 17:00',
+  'Ca19 17:30','Ca20 18:00','Ca21 18:30','Ca22 19:00','Ca23 19:30','Ca24 20:00',
+  'Ca25 20:30','Ca26 21:00','Ca27 21:30','Ca28 22:00'
+];
+const sessionCounts=[69,228,248,315,317,362,235,445,406,451,314,581,567,608,443,587,495,562,467,601,559,505,435,554,453,353,225,125];
+
+const serviceLabels=['Gội Thanh Lọc Sâu','Gội a.SENSE Signature','Detox Cổ Vai Gáy',
+                     'Gội Express Xả Sạch','Nail Care Tổng Quát','Triệt Lông',
+                     'Sạch Sâu Cân Bằng TN','Da Tươi Mọng Nước','Sạch Mụn a.SENSE','Tái CB Da Đầu'];
+const serviceCounts=[4301,2460,932,3141,566,944,486,324,155,217];
+
+const dailyAppNew=[1,0,2,0,2,0,0,0,0,1,1,0,1,0,1,2,0,1,1,0,0,0,0,1,0,0];
+const dailyAppKHHH=[12,6,9,12,10,12,9,12,11,17,12,13,18,2,9,17,14,9,20,8,11,8,13,9,14,8];
+const dailyVoucher=[90,100,80,45,80,100,90,50,100,55,75,51,128,125,166,145,20,93,0,53,55,70,50,0,110,60];
+const dailyGGMap=[5,2,2,2,5,2,3,4,3,6,3,5,0,0,3,0,2,0,4,3,2,2,5,2,4,2];
+
+// Centers with real KHHH and KH Mới counts
+const centers=[
+  {n:'Jasmine 1 Hà Đô Centrosa',  rev:258.73,khhh:628,khMoi:81, ns:10,us:61, ml:160,turn:1021,avgNS:2694500, avgUp:3081115},
+  {n:'H1 Masteri Waterfront OP',  rev:157.85,khhh:283,khMoi:121,ns:23,us:26, ml:131,turn:587, avgNS:2669861, avgUp:2203623},
+  {n:'West Lumière Riverside',    rev:150.42,khhh:359,khMoi:157,ns:14,us:41, ml:151,turn:719, avgNS:1854400, avgUp:2040659},
+  {n:'GH6 Glory Heights GP',      rev:149.59,khhh:157,khMoi:108,ns:8, us:36, ml:118,turn:450, avgNS:2102000, avgUp:2172361},
+  {n:'AK9 Akari City',            rev:144.35,khhh:275,khMoi:146,ns:13,us:44, ml:132,turn:602, avgNS:3016231, avgUp:1811023},
+  {n:'S2.02 RainBow Grand Park',  rev:143.53,khhh:169,khMoi:87, ns:13,us:37, ml:96, turn:458, avgNS:2066000, avgUp:2489486},
+  {n:'L1 Landmark Ecopark',       rev:135.92,khhh:107,khMoi:167,ns:27,us:7,  ml:173,turn:377, avgNS:2908900, avgUp:2247286},
+  {n:'Park 8 Times City',         rev:123.56,khhh:445,khMoi:64, ns:11,us:23, ml:114,turn:701, avgNS:2643236, avgUp:2385870},
+  {n:'Đoàn Trần Nghiệp',          rev:112.98,khhh:278,khMoi:60, ns:15,us:29, ml:95, turn:370, avgNS:2001840, avgUp:1976814},
+  {n:'E Lumiere Boulevard GP',    rev:95.82, khhh:119,khMoi:36, ns:26,us:11, ml:75, turn:280, avgNS:2232015, avgUp:1668455},
+  {n:'T10 Times City',            rev:89.68, khhh:218,khMoi:40, ns:7, us:16, ml:117,turn:373, avgNS:1820393, avgUp:3104538},
+  {n:'Masteri A Smart City',      rev:78.66, khhh:294,khMoi:15, ns:9, us:21, ml:80, turn:487, avgNS:1886844, avgUp:1768886},
+  {n:'CT2 Hateco',                rev:76.88, khhh:22, khMoi:5,  ns:27,us:0,  ml:106,turn:136, avgNS:2253211, avgUp:0},
+  {n:'I1 Imperia Smart City',     rev:75.60, khhh:241,khMoi:27, ns:9, us:13, ml:82, turn:361, avgNS:2194467, avgUp:2393108},
+  {n:'Nguyễn Đình Chiểu',         rev:73.87, khhh:138,khMoi:52, ns:12,us:19, ml:60, turn:211, avgNS:1775667, avgUp:2318263},
+  {n:'R4 Royal City',             rev:73.22, khhh:430,khMoi:44, ns:10,us:21, ml:100,turn:625, avgNS:2346735, avgUp:1551238},
+  {n:'S2 Vinhomes Symphony',      rev:69.95, khhh:209,khMoi:18, ns:20,us:6,  ml:124,turn:375, avgNS:2075690, avgUp:1711667},
+  {n:'N01 New Horizon City',      rev:65.72, khhh:81, khMoi:19, ns:21,us:5,  ml:68, turn:179, avgNS:2310733, avgUp:1867800},
+  {n:'BS9 Tropical Grand Park',   rev:63.11, khhh:101,khMoi:63, ns:17,us:14, ml:107,turn:244, avgNS:1765112, avgUp:776964},
+  {n:'C14 Bắc Hà',                rev:62.52, khhh:79, khMoi:21, ns:16,us:4,  ml:107,turn:193, avgNS:2083719, avgUp:1580000},
+  {n:'S3 Skylake',                rev:56.71, khhh:129,khMoi:33, ns:18,us:7,  ml:97, turn:248, avgNS:1512578, avgUp:1586514},
+  {n:'Solforest Ecopark',         rev:55.51, khhh:71, khMoi:49, ns:9, us:6,  ml:71, turn:168, avgNS:2614667, avgUp:2389500},
+  {n:'W2 West Point',             rev:53.75, khhh:244,khMoi:47, ns:4, us:7,  ml:135,turn:459, avgNS:3864000, avgUp:1724286},
+  {n:'HH-N01 Goldseason',         rev:53.18, khhh:165,khMoi:55, ns:7, us:6,  ml:111,turn:288, avgNS:2953800, avgUp:2612567},
+  {n:'Mipec',                     rev:58.28, khhh:236,khMoi:39, ns:9, us:13, ml:119,turn:392, avgNS:1653556, avgUp:1790662},
+  {n:'S4.02 Sapphire 4 SC',       rev:49.65, khhh:165,khMoi:109,ns:5, us:8,  ml:111,turn:345, avgNS:1447550, avgUp:2237375},
+  {n:'18T2 Việt Hưng Green Park', rev:48.16, khhh:54, khMoi:4,  ns:23,us:1,  ml:76, turn:147, avgNS:1700504, avgUp:840000},
+  {n:'Pearl 1 Mỹ Đình Pearl',     rev:47.74, khhh:86, khMoi:8,  ns:17,us:8,  ml:137,turn:229, avgNS:1740024, avgUp:0},
+  {n:'Tropical Feliz Homes',      rev:46.78, khhh:66, khMoi:11, ns:20,us:1,  ml:125,turn:207, avgNS:1492310, avgUp:59000},
+  {n:'BS8 Tropical GP',           rev:44.65, khhh:119,khMoi:17, ns:5, us:7,  ml:150,turn:328, avgNS:1753600, avgUp:1594457},
+  {n:'Xã Đàn',                    rev:43.86, khhh:93, khMoi:68, ns:12,us:15, ml:88, turn:197, avgNS:2469175, avgUp:311333},
+  {n:'S1.03 Sapphire SC',         rev:44.24, khhh:111,khMoi:38, ns:11,us:6,  ml:89, turn:236, avgNS:1806182, avgUp:1654000},
+  {n:'Sky B Imperia Garden',      rev:52.50, khhh:171,khMoi:14, ns:7, us:11, ml:46, turn:261, avgNS:3430143, avgUp:1633455},
+  {n:'G1 Green Bay',              rev:35.66, khhh:109,khMoi:0,  ns:10,us:0,  ml:124,turn:232, avgNS:1292000, avgUp:0},
+  {n:'S7.02 Origami GP',          rev:26.09, khhh:95, khMoi:2,  ns:8, us:1,  ml:110,turn:215, avgNS:1045000, avgUp:0},
+  {n:'P1.01 Pavilion Ocean Park', rev:32.82, khhh:50, khMoi:23, ns:4, us:5,  ml:39, turn:111, avgNS:3684250, avgUp:2249000},
+  {n:'Tô Hiến Thành',             rev:24.51, khhh:127,khMoi:15, ns:2, us:6,  ml:66, turn:194, avgNS:1910000, avgUp:2088000},
+  {n:'Giảng Võ',                  rev:29.51, khhh:147,khMoi:41, ns:5, us:7,  ml:70, turn:248, avgNS:2390560, avgUp:1154371},
+  {n:'Duy Tân',                   rev:23.94, khhh:81, khMoi:2,  ns:14,us:2,  ml:46, turn:143, avgNS:1109857, avgUp:1110000},
+  {n:'V3 Terra An Hưng',          rev:23.90, khhh:83, khMoi:15, ns:5, us:6,  ml:57, turn:156, avgNS:882000,  avgUp:1728167},
+  {n:'SA3 Sakura Smart City',     rev:27.42, khhh:48, khMoi:79, ns:3, us:3,  ml:112,turn:172, avgNS:2004583, avgUp:1349333},
+  {n:'Thái Hà',                   rev:21.79, khhh:112,khMoi:9,  ns:2, us:2,  ml:69, turn:191, avgNS:2025000, avgUp:1350000},
+  {n:'S6.02 Origami GP',          rev:23.12, khhh:46, khMoi:38, ns:2, us:9,  ml:50, turn:109, avgNS:1539000, avgUp:735556},
+  {n:'S10.07 Origami GP',         rev:21.29, khhh:34, khMoi:41, ns:4, us:5,  ml:63, turn:109, avgNS:1360000, avgUp:540000},
+  {n:'S2.15 Sapphire Ocean Park', rev:15.63, khhh:24, khMoi:16, ns:1, us:3,  ml:27, turn:63,  avgNS:840000,  avgUp:2992000},
+  {n:'SA5 Sakura Smart City',     rev:16.74, khhh:58, khMoi:53, ns:0, us:2,  ml:72, turn:150, avgNS:0,       avgUp:2401500},
+  {n:'C Sunshine Green Iconic',   rev:24.02, khhh:7,  khMoi:2,  ns:14,us:1,  ml:17, turn:39,  avgNS:1512429, avgUp:810000},
+].sort((a,b)=>b.rev-a.rev);
+
+centers.forEach(c=>{
+  c.totalKH=c.khhh+c.khMoi;
+  c.ratingNS=c.totalKH>0?(c.ns/c.totalKH*100):0;
+  c.ratingUp=c.totalKH>0?(c.us/c.totalKH*100):0;
+});
+
+// Tab3
+const dailyNewSale=[20,22,16,14,32,11,12,11,23,9,24,28,15,14,14,12,15,29,34,18,16,13,13,14,36,23];
+const dailyUpsale=[17,7,20,14,23,14,15,13,16,20,18,21,16,8,15,13,44,43,43,25,21,33,18,29,48,26];
+const dailyKTV=[138,131,129,144,143,132,137,135,140,138,149,140,131,131,124,125,125,148,145,113,116,119,123,130,134,117];
+const dsNewSaleD=[40.23,28.75,29.82,39.68,79.71,17.83,31.64,18.41,36.37,18.99,45.67,57.27,46.52,23.61,24.72,22.33,27.84,72.13,60.39,56.40,32.24,20.58,31.53,18.89,80.19,59.77];
+const dsUpsaleD=[33.96,13.89,28.21,18.54,63.56,29.92,25.51,24.79,38.62,34.17,31.48,47.80,31.83,14.27,23.97,23.42,87.95,109.47,103.31,53.02,50.97,63.03,34.84,49.53,89.57,41.76];
+const avgNewVal=[2011703,1306773,1863538,2834054,2490906,1620545,2636500,1673818,1581148,2109889,1903096,2045488,3101393,1686071,1765971,1860633,1855907,2487328,1776157,3133300,2014744,1583308,2425077,1349114,2227494,2598757];
+const avgUpVal=[1997882,1984286,1410700,1324143,2763474,2137143,1700800,1907154,2413688,1708250,1748778,2276143,1989375,1784250,1597933,1801462,1998750,2545781,2402526,2120888,2427000,1909976,1935278,1707972,1865950,1606038];
+const dsRetailD=[4.64,0.13,1.27,6.03,7.54,1.67,0.98,0.22,2.94,3.36,1.38,5.98,3.46,3.23,5.53,0.65,11.69,3.40,0.84,2.66,5.64,4.33,3.31,1.60,3.42,14.73];
+const dsMuaLeD=[24.09,27.71,36.09,44.23,44.35,28.34,26.65,25.17,28.34,36.88,39.50,38.41,21.00,27.81,30.19,27.85,27.68,36.49,45.23,21.79,27.22,26.94,25.65,29.66,32.02,29.93];
+
+function weekSlice(arr,s,l){return arr.slice(s,s+l).reduce((a,b)=>a+b,0)}
+const weeks=[
+  {w:'Tuần 1 (1-6/4)',   days:'1-6/4',   s:0, l:6},
+  {w:'Tuần 2 (7-13/4)',  days:'7-13/4',  s:6, l:7},
+  {w:'Tuần 3 (14-20/4)', days:'14-20/4', s:13,l:7},
+  {w:'Tuần 4 (21-26/4)', days:'21-26/4', s:20,l:6},
+].map(w=>({...w,
+  nsRev:weekSlice(dsNewSaleD,w.s,w.l), nsSL:weekSlice(dailyNewSale,w.s,w.l),
+  usRev:weekSlice(dsUpsaleD,w.s,w.l),  usSL:weekSlice(dailyUpsale,w.s,w.l),
+  mlRev:weekSlice(dsMuaLeD,w.s,w.l),   retRev:weekSlice(dsRetailD,w.s,w.l),
+  turn:weekSlice(dailyKH,w.s,w.l)
+}));
+
+/* ══════ CHART DEFAULTS ══════ */
+Chart.defaults.color='#9C8070';
+Chart.defaults.font.family="'Jost',sans-serif";
+Chart.defaults.font.size=11;
+const grid={color:'rgba(201,168,76,.07)',drawBorder:false};
+const ticks={color:'#9C8070'};
+const noLegend={display:false};
+
+/* ══════ TAB 1 ══════ */
+
+// KH arrival line (Tổng lượt đón KH per day)
+new Chart(document.getElementById('chartDailyKH'),{
+  type:'line',
+  data:{labels:days,datasets:[{
+    label:'Lượt Đón KH',data:dailyKH,
+    borderColor:'#C9A84C',borderWidth:2,pointRadius:3,pointBackgroundColor:'#C9A84C',
+    tension:.4,fill:true,
+    backgroundColor:ctx=>{const g=ctx.chart.ctx.createLinearGradient(0,0,0,280);g.addColorStop(0,'rgba(201,168,76,.3)');g.addColorStop(1,'rgba(201,168,76,.01)');return g}
+  }]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:noLegend,tooltip:{callbacks:{label:v=>` ${v.raw} lượt`}}},
+    scales:{x:{grid,ticks:{...ticks,maxRotation:45,font:{size:9}}},y:{grid,ticks}}}
+});
+
+// Revenue Pie
+new Chart(document.getElementById('chartRevPie'),{
+  type:'doughnut',
+  data:{labels:['New Sale','Upsale','Mua Lẻ DV','Retail SP'],
+    datasets:[{data:[1021.5,1167.4,809.2,100.6],
+      backgroundColor:['#C0152A','#C9A84C','#7a3030','#3d1a1a'],
+      borderColor:['#8B0000','#A07830','#4a1a1a','#1a0808'],borderWidth:2,hoverOffset:8}]},
+  options:{responsive:true,maintainAspectRatio:false,cutout:'68%',
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:v=>` ${v.label}: ${v.raw.toFixed(1)} tr.đ`}}}}
+});
+
+// Daily revenue line
+new Chart(document.getElementById('chartDailyRevenue'),{
+  type:'line',
+  data:{labels:days,datasets:[{
+    label:'DS (tr.đ)',data:dailyRevenue,
+    borderColor:'#C0152A',borderWidth:2,pointRadius:3,pointBackgroundColor:'#C0152A',
+    tension:.4,fill:true,
+    backgroundColor:ctx=>{const g=ctx.chart.ctx.createLinearGradient(0,0,0,260);g.addColorStop(0,'rgba(192,21,42,.27)');g.addColorStop(1,'rgba(192,21,42,.01)');return g}
+  }]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:noLegend,tooltip:{callbacks:{label:v=>` ${v.raw.toFixed(1)} tr.đ`}}},
+    scales:{x:{grid,ticks:{...ticks,maxRotation:45,font:{size:9}}},y:{grid,ticks:{...ticks,callback:v=>v+'tr'}}}}
+});
+
+// Hour bar – ALL 28 sessions, color by intensity
+const maxS=Math.max(...sessionCounts);
+new Chart(document.getElementById('chartHourBar'),{
+  type:'bar',
+  data:{labels:sessionLabels,datasets:[{
+    label:'Khách/Ca',data:sessionCounts,
+    backgroundColor:sessionCounts.map(v=>{
+      const p=v/maxS;
+      if(p>.85)return 'rgba(192,21,42,.95)';
+      if(p>.65)return 'rgba(192,21,42,.65)';
+      if(p>.45)return 'rgba(201,168,76,.55)';
+      return 'rgba(100,60,60,.45)';
+    }),borderRadius:2
+  }]},
+  options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+    plugins:{legend:noLegend,tooltip:{callbacks:{label:v=>` ${v.raw} khách (${v.label})`}}},
+    scales:{x:{grid,ticks},y:{grid:{display:false},ticks:{...ticks,font:{size:9}}}}}
+});
+
+// Services
+new Chart(document.getElementById('chartService'),{
+  type:'bar',
+  data:{labels:serviceLabels,datasets:[{
+    data:serviceCounts,
+    backgroundColor:serviceLabels.map((_,i)=>`hsl(${350-i*12},65%,${26+i*3}%)`),borderRadius:3
+  }]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:noLegend},
+    scales:{x:{grid:{display:false},ticks:{...ticks,maxRotation:35,font:{size:9}}},y:{grid,ticks}}}
+});
+
+// Activity
+new Chart(document.getElementById('chartActivity'),{
+  type:'line',
+  data:{labels:days,datasets:[
+    {label:'KHHH Tải App',data:dailyAppKHHH,borderColor:'#C9A84C',borderWidth:2,tension:.4,pointRadius:2,fill:false},
+    {label:'Phát Voucher (÷10)',data:dailyVoucher.map(v=>+(v/10).toFixed(1)),borderColor:'#C0152A',borderWidth:2,tension:.4,pointRadius:2,fill:false,borderDash:[4,3]},
+    {label:'Mời GG Map',data:dailyGGMap,borderColor:'#7a5050',borderWidth:1.5,tension:.4,pointRadius:2,fill:false},
+    {label:'KH New Tải App',data:dailyAppNew,borderColor:'#50d090',borderWidth:1.5,tension:.4,pointRadius:2,fill:false},
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:true,position:'bottom',labels:{color:'#9C8070',font:{size:9},boxWidth:12,padding:10}},
+      tooltip:{callbacks:{label:v=>v.datasetIndex===1?` Phát Voucher: ${Math.round(v.raw*10)}`:` ${v.dataset.label}: ${v.raw}`}}},
+    scales:{x:{grid,ticks:{...ticks,maxRotation:45,font:{size:9}}},y:{grid,ticks}}}
+});
+
+/* ══════ TAB 2 ══════ */
+const top10=centers.slice(0,10);
+
+// Top 10 DS bar
+new Chart(document.getElementById('chartTopCenter'),{
+  type:'bar',
+  data:{labels:top10.map(c=>c.n.length>20?c.n.slice(0,18)+'…':c.n),
+    datasets:[{label:'DS (tr.đ)',data:top10.map(c=>c.rev),
+      backgroundColor:top10.map((_,i)=>`rgba(192,21,42,${.92-i*.06})`),
+      borderColor:'rgba(201,168,76,.18)',borderWidth:1,borderRadius:3}]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:noLegend,tooltip:{callbacks:{label:v=>` ${v.raw.toFixed(2)} tr.đ`}}},
+    scales:{x:{grid:{display:false},ticks:{...ticks,maxRotation:35,font:{size:9}}},y:{grid,ticks:{...ticks,callback:v=>v+'tr'}}}}
+});
+
+// Rating NS
+const top15NS=[...centers].filter(c=>c.ratingNS>0).sort((a,b)=>b.ratingNS-a.ratingNS).slice(0,15);
+new Chart(document.getElementById('chartNewSaleRating'),{
+  type:'bar',
+  data:{labels:top15NS.map(c=>c.n.length>18?c.n.slice(0,16)+'…':c.n),
+    datasets:[{data:top15NS.map(c=>+c.ratingNS.toFixed(1)),
+      backgroundColor:top15NS.map((_,i)=>`rgba(192,21,42,${.9-i*.04})`),borderRadius:2}]},
+  options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+    plugins:{legend:noLegend,tooltip:{callbacks:{label:v=>` ${v.raw}%`}}},
+    scales:{x:{grid,ticks:{...ticks,callback:v=>v+'%'}},y:{grid:{display:false},ticks:{...ticks,font:{size:9}}}}}
+});
+
+// Rating UP
+const top15Up=[...centers].filter(c=>c.ratingUp>0).sort((a,b)=>b.ratingUp-a.ratingUp).slice(0,15);
+new Chart(document.getElementById('chartUpsaleRating'),{
+  type:'bar',
+  data:{labels:top15Up.map(c=>c.n.length>18?c.n.slice(0,16)+'…':c.n),
+    datasets:[{data:top15Up.map(c=>+c.ratingUp.toFixed(1)),
+      backgroundColor:top15Up.map((_,i)=>`rgba(201,168,76,${.85-i*.04})`),borderRadius:2}]},
+  options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+    plugins:{legend:noLegend,tooltip:{callbacks:{label:v=>` ${v.raw}%`}}},
+    scales:{x:{grid,ticks:{...ticks,callback:v=>v+'%'}},y:{grid:{display:false},ticks:{...ticks,font:{size:9}}}}}
+});
+
+// Avg NS val
+const top15AvgNS=[...centers].filter(c=>c.avgNS>0).sort((a,b)=>b.avgNS-a.avgNS).slice(0,15);
+new Chart(document.getElementById('chartAvgNewVal'),{
+  type:'bar',
+  data:{labels:top15AvgNS.map(c=>c.n.length>18?c.n.slice(0,16)+'…':c.n),
+    datasets:[{data:top15AvgNS.map(c=>Math.round(c.avgNS/1000)),
+      backgroundColor:top15AvgNS.map((_,i)=>`rgba(192,21,42,${.88-i*.04})`),borderRadius:2}]},
+  options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+    plugins:{legend:noLegend,tooltip:{callbacks:{label:v=>` ${v.raw.toLocaleString()}k đ`}}},
+    scales:{x:{grid,ticks:{...ticks,callback:v=>v+'k'}},y:{grid:{display:false},ticks:{...ticks,font:{size:9}}}}}
+});
+
+// Avg UP val
+const top15AvgUp=[...centers].filter(c=>c.avgUp>0).sort((a,b)=>b.avgUp-a.avgUp).slice(0,15);
+new Chart(document.getElementById('chartAvgUpVal'),{
+  type:'bar',
+  data:{labels:top15AvgUp.map(c=>c.n.length>18?c.n.slice(0,16)+'…':c.n),
+    datasets:[{data:top15AvgUp.map(c=>Math.round(c.avgUp/1000)),
+      backgroundColor:top15AvgUp.map((_,i)=>`rgba(201,168,76,${.85-i*.04})`),borderRadius:2}]},
+  options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+    plugins:{legend:noLegend,tooltip:{callbacks:{label:v=>` ${v.raw.toLocaleString()}k đ`}}},
+    scales:{x:{grid,ticks:{...ticks,callback:v=>v+'k'}},y:{grid:{display:false},ticks:{...ticks,font:{size:9}}}}}
+});
+
+// Center Pie
+const top5=centers.slice(0,5);
+const othersRev=centers.slice(5).reduce((s,c)=>s+c.rev,0);
+new Chart(document.getElementById('chartCenterPie'),{
+  type:'doughnut',
+  data:{labels:[...top5.map(c=>c.n.slice(0,14)+'…'),'Còn lại'],
+    datasets:[{data:[...top5.map(c=>c.rev),othersRev],
+      backgroundColor:['#C0152A','#A01020','#C9A84C','#8B6020','#7a3030','#2a1010'],
+      borderColor:'#0D0505',borderWidth:2,hoverOffset:6}]},
+  options:{responsive:true,maintainAspectRatio:false,cutout:'60%',
+    plugins:{legend:{display:true,position:'bottom',labels:{color:'#9C8070',font:{size:8},padding:6,boxWidth:10}},
+      tooltip:{callbacks:{label:v=>` ${v.raw.toFixed(1)} tr.đ`}}}}
+});
+
+// Turn stacked – using real khhh + khMoi
+new Chart(document.getElementById('chartCenterTurnBar'),{
+  type:'bar',
+  data:{labels:top10.map(c=>c.n.length>14?c.n.slice(0,12)+'…':c.n),
+    datasets:[
+      {label:'KHHH',  data:top10.map(c=>c.khhh), backgroundColor:'rgba(192,21,42,.8)',borderRadius:2},
+      {label:'KH Mới',data:top10.map(c=>c.khMoi),backgroundColor:'rgba(201,168,76,.55)',borderRadius:2}
+    ]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:true,labels:{color:'#9C8070',font:{size:9},boxWidth:10}}},
+    scales:{x:{stacked:true,grid:{display:false},ticks:{...ticks,maxRotation:45,font:{size:8}}},
+      y:{stacked:true,grid,ticks}}}
+});
+
+// Center table
+function buildCenterTable(data){
+  const tbody=document.getElementById('centerTbody');
+  const maxRev=data[0]?.rev||1;
+  tbody.innerHTML=data.map((c,i)=>{
+    const pct=Math.min(100,Math.round(c.rev/maxRev*100));
+    const badge=i===0?'gold':i===1?'silver':i===2?'bronze':'';
+    const nsColor=c.ratingNS>15?'#50d090':c.ratingNS>8?'#E8C76A':'#c05050';
+    const upColor=c.ratingUp>8?'#50d090':c.ratingUp>4?'#E8C76A':'#c05050';
+    return `<tr>
+      <td><span class="rank-badge ${badge}">${i+1}</span></td>
+      <td class="name">${c.n}</td>
+      <td class="num">${c.rev.toFixed(2)}</td>
+      <td class="num">${c.totalKH.toLocaleString()}</td>
+      <td class="num">${c.khhh}</td>
+      <td class="num">${c.khMoi}</td>
+      <td class="num">${c.ns}</td>
+      <td class="num" style="color:${nsColor};font-weight:600">${c.ratingNS.toFixed(1)}%</td>
+      <td class="num">${c.us}</td>
+      <td class="num" style="color:${upColor};font-weight:600">${c.ratingUp.toFixed(1)}%</td>
+      <td class="num">${c.avgNS>0?(c.avgNS/1000).toFixed(0)+'k':'–'}</td>
+      <td class="num">${c.avgUp>0?(c.avgUp/1000).toFixed(0)+'k':'–'}</td>
+      <td class="num">${c.turn.toLocaleString()}</td>
+      <td class="num"><div class="prog-bar-wrap"><div class="prog-bar" style="width:${pct}%"></div></div></td>
+    </tr>`;
+  }).join('');
+}
+buildCenterTable(centers);
+window.filterCenter=function(){
+  const q=document.getElementById('searchCenter').value.toLowerCase();
+  buildCenterTable(centers.filter(c=>c.n.toLowerCase().includes(q)));
+};
+
+/* ══════ TAB 3 ══════ */
+
+// Channel bar
+new Chart(document.getElementById('chartRevChannel'),{
+  type:'bar',
+  data:{labels:['New Sale','Upsale','Bán Lẻ DV','Retail SP'],
+    datasets:[{data:[1021.5,1167.4,809.2,100.6],
+      backgroundColor:['rgba(192,21,42,.85)','rgba(201,168,76,.7)','rgba(122,48,48,.8)','rgba(61,26,26,.9)'],
+      borderRadius:4}]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:noLegend,tooltip:{callbacks:{label:v=>` ${v.raw.toFixed(1)} tr.đ`}}},
+    scales:{x:{grid:{display:false},ticks},y:{grid,ticks:{...ticks,callback:v=>v+'tr'}}}}
+});
+
+// Channel pie
+new Chart(document.getElementById('chartRevChannelPie'),{
+  type:'doughnut',
+  data:{labels:['New Sale','Upsale','Bán Lẻ DV','Retail SP'],
+    datasets:[{data:[1021.5,1167.4,809.2,100.6],
+      backgroundColor:['#C0152A','#C9A84C','#7a3030','#3d1a1a'],
+      borderColor:'#0D0505',borderWidth:2,hoverOffset:6}]},
+  options:{responsive:true,maintainAspectRatio:false,cutout:'65%',
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:v=>` ${v.raw.toFixed(1)} tr.đ`}}}}
+});
+
+// KTV line
+new Chart(document.getElementById('chartKTVLine'),{
+  type:'line',
+  data:{labels:days,datasets:[{
+    label:'SL KTV',data:dailyKTV,
+    borderColor:'#C9A84C',borderWidth:2,pointRadius:3,pointBackgroundColor:'#C9A84C',
+    tension:.4,fill:true,
+    backgroundColor:ctx=>{const g=ctx.chart.ctx.createLinearGradient(0,0,0,230);g.addColorStop(0,'rgba(201,168,76,.22)');g.addColorStop(1,'rgba(201,168,76,.01)');return g}
+  }]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:noLegend},
+    scales:{x:{grid,ticks:{...ticks,maxRotation:45,font:{size:9}}},y:{grid,ticks,min:80}}}
+});
+
+// Sale daily
+new Chart(document.getElementById('chartSaleDaily'),{
+  type:'bar',
+  data:{labels:days,datasets:[
+    {label:'New Sale',data:dailyNewSale,backgroundColor:'rgba(192,21,42,.8)',borderRadius:2},
+    {label:'Upsale',data:dailyUpsale,backgroundColor:'rgba(201,168,76,.65)',borderRadius:2}
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:true,labels:{color:'#9C8070',font:{size:9},boxWidth:10}}},
+    scales:{x:{grid:{display:false},ticks:{...ticks,maxRotation:45,font:{size:9}}},y:{grid,ticks}}}
+});
+
+// DS all channels daily
+new Chart(document.getElementById('chartDSChannelDaily'),{
+  type:'line',
+  data:{labels:days,datasets:[
+    {label:'DS New Sale (tr)',data:dsNewSaleD,borderColor:'#C0152A',borderWidth:2,tension:.4,pointRadius:2,fill:false},
+    {label:'DS Upsale (tr)',data:dsUpsaleD,borderColor:'#C9A84C',borderWidth:2,tension:.4,pointRadius:2,fill:false},
+    {label:'DS Bán Lẻ DV (tr)',data:dsMuaLeD,borderColor:'#8a5050',borderWidth:1.5,tension:.4,pointRadius:2,fill:false,borderDash:[4,3]},
+    {label:'Retail SP (tr)',data:dsRetailD,borderColor:'#a07040',borderWidth:1.5,tension:.4,pointRadius:2,fill:false,borderDash:[2,4]}
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:true,position:'bottom',labels:{color:'#9C8070',font:{size:9},boxWidth:12,padding:10}},
+      tooltip:{callbacks:{label:v=>` ${v.dataset.label}: ${v.raw.toFixed(1)} tr`}}},
+    scales:{x:{grid,ticks:{...ticks,maxRotation:45,font:{size:9}}},y:{grid,ticks:{...ticks,callback:v=>v+'tr'}}}}
+});
+
+// Avg value
+new Chart(document.getElementById('chartAvgValue'),{
+  type:'line',
+  data:{labels:days,datasets:[
+    {label:'Gói New (đ)',data:avgNewVal,borderColor:'#C0152A',borderWidth:2,tension:.4,pointRadius:2,fill:false},
+    {label:'Gói Up (đ)',data:avgUpVal,borderColor:'#C9A84C',borderWidth:2,tension:.4,pointRadius:2,fill:false}
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:true,labels:{color:'#9C8070',font:{size:9},boxWidth:10}},
+      tooltip:{callbacks:{label:v=>` ${v.label}: ${(v.raw/1000).toFixed(0)}k`}}},
+    scales:{x:{grid,ticks:{...ticks,maxRotation:45,font:{size:9}}},y:{grid,ticks:{...ticks,callback:v=>(v/1000000).toFixed(1)+'M'}}}}
+});
+
+// Weekly bar
+new Chart(document.getElementById('chartWeekly'),{
+  type:'bar',
+  data:{labels:weeks.map(w=>w.w),datasets:[
+    {label:'DS New Sale',data:weeks.map(w=>+w.nsRev.toFixed(1)),backgroundColor:'rgba(192,21,42,.8)',borderRadius:3},
+    {label:'DS Upsale',data:weeks.map(w=>+w.usRev.toFixed(1)),backgroundColor:'rgba(201,168,76,.6)',borderRadius:3}
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:true,labels:{color:'#9C8070',font:{size:9},boxWidth:10}},
+      tooltip:{callbacks:{label:v=>` ${v.label}: ${v.raw.toFixed(1)} tr.đ`}}},
+    scales:{x:{grid:{display:false},ticks},y:{grid,ticks:{...ticks,callback:v=>v+'tr'}}}}
+});
+
+// Weekly table
+document.getElementById('weeklyTbody').innerHTML=weeks.map(w=>`
+  <tr>
+    <td class="name">${w.w}</td>
+    <td style="color:var(--text-muted)">${w.days}</td>
+    <td class="num" style="color:var(--gold-light);font-weight:600">${(w.nsRev+w.usRev).toFixed(1)}</td>
+    <td class="num">${w.nsSL+w.usSL}</td>
+    <td class="num">${w.nsRev.toFixed(1)}</td>
+    <td class="num">${w.nsSL}</td>
+    <td class="num">${w.usRev.toFixed(1)}</td>
+    <td class="num">${w.usSL}</td>
+    <td class="num">${w.mlRev.toFixed(1)}</td>
+    <td class="num">${w.retRev.toFixed(1)}</td>
+    <td class="num">${w.turn.toLocaleString()}</td>
+  </tr>
+`).join('');
+
+/* ══════ TAB SWITCH ══════ */
+window.switchTab=function(idx){
+  document.querySelectorAll('.tab-panel').forEach((p,i)=>p.classList.toggle('active',i===idx));
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',i===idx));
+};
+</script>
+</body>
+</html>
